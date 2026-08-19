@@ -1,0 +1,146 @@
+/* ============================================================
+   DXC SOC VULN CORRELATION — Main CSS Design System
+   DXC Technology Brand Color Palette — Light Theme
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── CSS Custom Properties (Design Tokens) ── */
+:root {
+  /* DXC Brand Colors */
+  --dxc-purple:        #603494;
+  --dxc-purple-dark:   #4a2475;
+  --dxc-purple-deeper: #3a1858;
+  --dxc-purple-light:  #7b4aad;
+  --dxc-purple-50:     #f5eefd;
+  --dxc-purple-100:    #ede0fa;
+  --dxc-purple-200:    #d9bef5;
+  --dxc-purple-300:    #c09de8;
+
+  /* Greyscale (DXC Halstack) */
+  --grey-50:  #fafafa;
+  --grey-100: #f2f2f2;
+  --grey-200: #e6e6e6;
+  --grey-300: #cccccc;
+  --grey-400: #bfbfbf;
+  --grey-500: #999999;
+  --grey-600: #808080;
+  --grey-700: #666666;
+  --grey-800: #4d4d4d;
+  --grey-900: #333333;
+
+  /* Semantic Colors */
+  --white:     #ffffff;
+  --black:     #000000;
+
+  /* Severity Colors */
+  --severity-critical: #c62828;
+  --severity-critical-bg: #fde8e8;
+  --severity-critical-border: #ef9a9a;
+  --severity-high:     #e65100;
+  --severity-high-bg:  #fff3e0;
+  --severity-high-border: #ffcc80;
+  --severity-medium:   #f9a825;
+  --severity-medium-bg:#fffde7;
+  --severity-medium-border: #fff176;
+  --severity-low:      #2e7d32;
+  --severity-low-bg:   #e8f5e9;
+  --severity-low-border: #a5d6a7;
+  --severity-info:     #1565c0;
+  --severity-info-bg:  #e3f2fd;
+  --severity-info-border: #90caf9;
+
+  /* Status colors */
+  --success: #388e3c;
+  --warning: #f57c00;
+  --error:   #d32f2f;
+  --info:    #1976d2;
+
+  /* Layout */
+  --sidebar-width:        260px;
+  --sidebar-collapsed:    64px;
+  --topbar-height:        64px;
+
+  /* Typography */
+  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono:  'JetBrains Mono', 'Consolas', monospace;
+
+  --text-xs:   0.75rem;
+  --text-sm:   0.875rem;
+  --text-base: 1rem;
+  --text-lg:   1.125rem;
+  --text-xl:   1.25rem;
+  --text-2xl:  1.5rem;
+  --text-3xl:  1.875rem;
+  --text-4xl:  2.25rem;
+
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border radius */
+  --radius-sm:   4px;
+  --radius-md:   8px;
+  --radius-lg:   12px;
+  --radius-xl:   16px;
+  --radius-2xl:  24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-xs:  0 1px 2px rgba(0,0,0,.06);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:  0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:  0 10px 15px rgba(0,0,0,.08), 0 4px 6px rgba(0,0,0,.05);
+  --shadow-xl:  0 20px 25px rgba(0,0,0,.10), 0 10px 10px rgba(0,0,0,.06);
+  --shadow-purple: 0 4px 20px rgba(96, 52, 148, 0.18);
+  --shadow-purple-lg: 0 8px 32px rgba(96, 52, 148, 0.25);
+
+  /* Transitions */
+  --transition-fast:   all 0.15s ease;
+  --transition-base:   all 0.25s ease;
+  --transition-slow:   all 0.4s ease;
+
+  /* Z-indices */
+  --z-base:    1;
+  --z-dropdown: 100;
+  --z-modal:   1000;
+  --z-toast:   2000;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--grey-100);
+  color: var(--grey-900);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+a { color: var(--dxc-purple); text-decoration: none; transition: var(--transition-fast); }
+a:hover { color: var(--dxc-purple-dark); }
+
+img { max-width: 100%; display: block; }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--grey-100); }
+::-webkit-scrollbar-thumb { background: var(--grey-300); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--dxc-purple-300); }

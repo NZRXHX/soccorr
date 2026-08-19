@@ -1,0 +1,244 @@
+%YAML 1.1
+---
+metadata:
+  name: Suricata Network IDS Rules
+  version: "7.0"
+  description: |
+    Suricata NIDS signature rules for detecting common network-based attacks,
+    malware C2 communication, exploitation attempts, and APT-associated indicators.
+  author: DXC SOC Team
+  created: "2024-03-01"
+  framework: Suricata
+
+rules:
+
+  - sid: 9000001
+    name: ET MALWARE Emotet Loader Network Activity
+    action: alert
+    protocol: tcp
+    src:
+      ip: any
+      port: any
+    dst:
+      ip: any
+      port: "[80,443,8080,8443]"
+    direction: "->"
+    msg: "ET MALWARE Emotet Loader Network Activity Detected"
+    flow: established,to_server
+    content_matches:
+      - content: "POST"
+        depth: 4
+      - content: "/wp-admin/"
+        http_uri: true
+      - content: "Mozilla/4.0"
+        http_header: true
+    pcre: "/\\/[a-z]{4,8}\\/[a-z]{4,8}\\.(php|asp)/Ri"
+    classtype: trojan-activity
+    severity: high
+    metadata:
+      affected_product: Windows
+      attack_target: Client_Endpoint
+      created_at: "2024-01-10"
+      deployment: Perimeter
+      performance_impact: Low
+      signature_severity: Major
+      updated_at: "2024-03-15"
+    references:
+      - url: doc.emergingthreats.net/2036754
+      - url: https://attack.mitre.org/software/S0367/
+    mitre:
+      tactics: [Command and Control]
+      techniques: [T1071.001, T1573.001]
+    tags: [Emotet, Malware, C2, T1071.001]
+
+  - sid: 9000002
+    name: ET EXPLOIT Apache Log4j RCE Attempt (CVE-2021-44228)
+    action: alert
+    protocol: tcp
+    src:
+      ip: any
+      port: any
+    dst:
+      ip: any
+      port: any
+    direction: "->"
+    msg: "ET EXPLOIT Apache Log4Shell RCE Attempt (CVE-2021-44228)"
+    flow: established,to_server
+    content_matches:
+      - content: "${jndi:"
+        nocase: true
+      - content: "ldap"
+        distance: 0
+        within: 10
+    classtype: attempted-admin
+    severity: critical
+    metadata:
+      cve: CVE-2021-44228
+      affected_product: Apache Log4j
+      attack_target: Server
+      created_at: "2021-12-10"
+      deployment: All
+      performance_impact: Medium
+      signature_severity: Critical
+    references:
+      - url: https://nvd.nist.gov/vuln/detail/CVE-2021-44228
+      - url: https://logging.apache.org/log4j/2.x/security.html
+    mitre:
+      tactics: [Initial Access]
+      techniques: [T1190]
+    tags: [Log4Shell, Log4j, CVE-2021-44228, RCE, Critical]
+
+  - sid: 9000003
+    name: ET SCAN Nmap SYN Scan Detection
+    action: alert
+    protocol: tcp
+    src:
+      ip: any
+      port: any
+    dst:
+      ip: $HOME_NET
+      port: any
+    direction: "->"
+    msg: "ET SCAN Nmap SYN Scan Detected - Possible Reconnaissance"
+    flow: stateless
+    flags: "S,12"
+    detection_filter:
+      track: by_src
+      count: 100
+      seconds: 10
+    classtype: network-scan
+    severity: medium
+    metadata:
+      created_at: "2024-01-01"
+      deployment: Internal
+      performance_impact: Low
+    references:
+      - url: https://attack.mitre.org/techniques/T1046/
+    mitre:
+      tactics: [Discovery]
+      techniques: [T1046]
+    tags: [Reconnaissance, Port-Scan, Discovery, T1046]
+
+  - sid: 9000004
+    name: ET MALWARE APT29 Cozy Bear WellMess RAT Checkin
+    action: alert
+    protocol: tcp
+    src:
+      ip: any
+      port: any
+    dst:
+      ip: any
+      port: any
+    direction: "<>"
+    msg: "ET MALWARE APT29 WellMess RAT C2 Check-in Detected"
+    flow: established
+    content_matches:
+      - content: "Content-Type: application/x-www-form-urlencoded"
+        http_header: true
+      - content: "POST"
+        http_method: true
+    pcre: "/^[A-Za-z0-9+\\/]{200,}={0,2}$/P"
+    byte_test:
+      - bytes: 2
+        operator: ">"
+        value: 150
+        offset: 0
+        relative: true
+    classtype: trojan-activity
+    severity: critical
+    metadata:
+      affected_product: Windows
+      attack_target: Client_Endpoint
+      created_at: "2024-02-14"
+      deployment: Perimeter
+      signature_severity: Critical
+      apt_group: APT29
+    references:
+      - url: https://attack.mitre.org/groups/G0016/
+      - url: https://www.cisa.gov/uscert/ncas/alerts/aa20-301a
+    mitre:
+      tactics: [Command and Control]
+      techniques: [T1071.001, T1132.001, T1573]
+    tags: [APT29, CozyBear, WellMess, RAT, C2, Russia]
+
+  - sid: 9000005
+    name: ET EXPLOIT SMBGhost EternalBlue-like Exploit Attempt (CVE-2020-0796)
+    action: alert
+    protocol: tcp
+    src:
+      ip: any
+      port: any
+    dst:
+      ip: $HOME_NET
+      port: 445
+    direction: "->"
+    msg: "ET EXPLOIT SMBv3 RCE Exploit Attempt (CVE-2020-0796 SMBGhost)"
+    flow: established,to_server
+    byte_test:
+      - bytes: 4
+        operator: "="
+        value: 0x72000065
+        offset: 4
+        endian: little
+    content_matches:
+      - content: "|FC 53 4D 42|"
+        depth: 8
+      - content: "|11 00 00 00|"
+        distance: 5
+        within: 4
+    classtype: attempted-admin
+    severity: critical
+    metadata:
+      cve: CVE-2020-0796
+      affected_product: Windows SMBv3
+      attack_target: Server
+      created_at: "2020-03-12"
+      deployment: Internal
+      performance_impact: Medium
+      signature_severity: Critical
+    references:
+      - url: https://nvd.nist.gov/vuln/detail/CVE-2020-0796
+      - url: https://msrc.microsoft.com/update-guide/vulnerability/CVE-2020-0796
+    mitre:
+      tactics: [Lateral Movement, Initial Access]
+      techniques: [T1210, T1190]
+    tags: [SMBGhost, EternalBlue, CVE-2020-0796, SMB, RCE]
+
+  - sid: 9000006
+    name: ET MALWARE Ransomware File Extension Pattern
+    action: alert
+    protocol: tcp
+    src:
+      ip: $HOME_NET
+      port: any
+    dst:
+      ip: $HOME_NET
+      port: "[445,139]"
+    direction: "->"
+    msg: "ET MALWARE Possible Ransomware File Encryption via SMB Detected"
+    flow: established
+    content_matches:
+      - content: "SMB"
+        depth: 4
+      - content: "|00 00|"
+        distance: 0
+    detection_filter:
+      track: by_src
+      count: 50
+      seconds: 30
+    classtype: trojan-activity
+    severity: critical
+    metadata:
+      affected_product: Windows File Servers
+      attack_target: Server
+      created_at: "2024-01-20"
+      deployment: Internal
+      performance_impact: Medium
+      signature_severity: Critical
+    references:
+      - url: https://www.cisa.gov/stopransomware
+      - url: https://attack.mitre.org/techniques/T1486/
+    mitre:
+      tactics: [Impact]
+      techniques: [T1486, T1490]
+    tags: [Ransomware, Encryption, Impact, LockBit, BlackCat]

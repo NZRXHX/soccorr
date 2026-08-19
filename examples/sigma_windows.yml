@@ -1,0 +1,192 @@
+title: Windows Credential Access and Lateral Movement Rules
+status: stable
+description: |
+  Collection of Sigma rules targeting Windows credential access techniques
+  and lateral movement behaviors commonly observed in APT campaigns.
+
+---
+
+title: Mimikatz LSASS Memory Access
+id: fc3b2e5e-0b8f-4f7a-88ca-1f8b0a9e7d41
+status: stable
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess|contains:
+      - '0x1010'
+      - '0x1410'
+      - '0x1438'
+      - '0x143a'
+      - '0x1F3FFF'
+  condition: selection
+falsepositives:
+  - Unknown
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003.001
+  - attack.s0002
+mitre:
+  technique: T1003.001
+  tactic: Credential Access
+
+---
+
+title: Pass-the-Hash via Lateral Movement
+id: 8eef4eed-7d08-4b5a-9fc5-1c8f83ccbe2d
+status: stable
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 4624
+    LogonType: 3
+    LogonProcessName: NtLmSsp
+    WorkstationName: ''
+  condition: selection
+falsepositives:
+  - Legitimate administrator activity
+level: medium
+tags:
+  - attack.lateral_movement
+  - attack.t1550.002
+mitre:
+  technique: T1550.002
+  tactic: Lateral Movement
+
+---
+
+title: Suspicious PowerShell Encoded Command
+id: ca2092a1-c4ae-4265-9143-e8e3ca05dc0d
+status: stable
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\powershell.exe'
+    CommandLine|contains:
+      - ' -EncodedCommand '
+      - ' -enc '
+      - ' -e '
+  filter_length:
+    CommandLine|contains: '-e '
+  condition: selection
+falsepositives:
+  - Legitimate use of encoded commands by admins
+level: medium
+tags:
+  - attack.execution
+  - attack.t1059.001
+  - attack.defense_evasion
+  - attack.t1027
+mitre:
+  technique: T1059.001
+  tactic: Execution
+
+---
+
+title: Scheduled Task Creation via Schtasks
+id: 92e0b4d9-f23e-4d81-af2e-0fa2f8b0e347
+status: stable
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\schtasks.exe'
+    CommandLine|contains: '/create'
+  condition: selection
+falsepositives:
+  - Legitimate software installations
+level: low
+tags:
+  - attack.persistence
+  - attack.t1053.005
+mitre:
+  technique: T1053.005
+  tactic: Persistence
+
+---
+
+title: NTDS.dit File Access
+id: b3d6be3c-f8d4-459f-ae64-6bd8ad7e2ef9
+status: experimental
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+    ServiceName|contains: 'ntds'
+  keyword_selection:
+    Keywords|contains: 'ntds.dit'
+  condition: selection or keyword_selection
+falsepositives:
+  - DC backup operations
+level: critical
+tags:
+  - attack.credential_access
+  - attack.t1003.003
+mitre:
+  technique: T1003.003
+  tactic: Credential Access
+
+---
+
+title: Remote Service Installation
+id: 4c0b6b97-0827-4d43-9e57-56b04c95f8ee
+status: stable
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    EventID: 7045
+    ServiceType: '0x10'
+    ServiceStartType: '0x3'
+  condition: selection
+falsepositives:
+  - Legitimate remote management software
+level: medium
+tags:
+  - attack.lateral_movement
+  - attack.t1021
+  - attack.persistence
+  - attack.t1543.003
+mitre:
+  technique: T1543.003
+  tactic: Persistence
+
+---
+
+title: WMI Lateral Movement Execution
+id: 9d59b09e-d3d9-44b5-a4d6-08f1b59a4cef
+status: stable
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    ParentImage|endswith: '\WmiPrvSE.exe'
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+      - '\wscript.exe'
+      - '\cscript.exe'
+  condition: selection
+falsepositives:
+  - Legitimate WMI-based management tools
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1021.006
+  - attack.execution
+  - attack.t1047
+mitre:
+  technique: T1047
+  tactic: Execution

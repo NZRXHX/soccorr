@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DXC SOC VULN CORRELATION — Intelligence Platform</title>
+  <meta name="description" content="DXC Technology SOC Vulnerability Correlation Platform — Correlate SIEM/SOC rules with MITRE ATT&CK, CVEs, and APT threat intelligence."/>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/main.css"/>
+  <link rel="stylesheet" href="css/components.css"/>
+  <link rel="stylesheet" href="css/sections.css"/>
+
+  <!-- CDN Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     APP SHELL
+════════════════════════════════════════════ -->
+<div class="app-shell">
+
+  <!-- ── Sidebar ─────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-icon">🛡️</div>
+        <div class="sidebar-logo-text">
+          <div class="sidebar-logo-title">DXC SOVC</div>
+          <div class="sidebar-logo-subtitle">Vuln Correlation</div>
+        </div>
+      </div>
+      <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">◀</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="sidebar-nav-group">
+        <div class="sidebar-nav-label">Platform</div>
+        <div class="nav-item" data-section="home">
+          <span class="nav-icon">🏠</span>
+          <span class="nav-text">Dashboard</span>
+        </div>
+      </div>
+
+      <div class="sidebar-nav-group">
+        <div class="sidebar-nav-label">Intelligence</div>
+        <div class="nav-item" data-section="cve">
+          <span class="nav-icon">🔴</span>
+          <span class="nav-text">CVE Intelligence</span>
+        </div>
+        <div class="nav-item" data-section="apt">
+          <span class="nav-icon">👤</span>
+          <span class="nav-text">APT Groups & TTPs</span>
+        </div>
+      </div>
+
+      <div class="sidebar-nav-group">
+        <div class="sidebar-nav-label">Analysis</div>
+        <div class="nav-item" data-section="rules">
+          <span class="nav-icon">📋</span>
+          <span class="nav-text">SOC/SIEM Rules</span>
+        </div>
+        <div class="nav-item" data-section="correlation">
+          <span class="nav-icon">🔗</span>
+          <span class="nav-text">Rule Correlation</span>
+          <span class="nav-badge">CORE</span>
+        </div>
+      </div>
+
+      <div class="sidebar-nav-group">
+        <div class="sidebar-nav-label">Resources</div>
+        <div class="nav-item" data-section="examples">
+          <span class="nav-icon">📥</span>
+          <span class="nav-text">Example Files</span>
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-info">
+        <div class="sidebar-logo-icon" style="font-size:14px">DXC</div>
+        <div class="sidebar-footer-text">
+          <div class="sidebar-footer-title">DXC Technology</div>
+          <div class="sidebar-footer-sub">SOC Intelligence v1.0</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main Content ─────────────────────── -->
+  <main class="main-content" id="main-content">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-breadcrumb">
+        <span>DXC SOC</span>
+        <span class="separator">›</span>
+        <span class="current" id="breadcrumb-current">Dashboard</span>
+      </div>
+      <div class="topbar-actions">
+        <div class="topbar-badge" id="mitre-badge">
+          <span class="status-dot"></span>Loading ATT&CK…
+        </div>
+      </div>
+    </header>
+
+    <!-- ════════════════════════════════
+         SECTION: HOME / DASHBOARD
+    ════════════════════════════════ -->
+    <section class="section-page active" id="section-home">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">🛡️</div>
+          <div>
+            <h1 class="section-title">DXC SOC <span>VULN CORRELATION</span></h1>
+            <p class="section-description">
+              Enterprise-grade SOC intelligence platform. Correlate your SIEM rules with MITRE ATT&CK, 
+              CVE databases, and real APT threat intelligence in real time.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:32px">
+        <div class="stat-card" style="border-left:4px solid var(--dxc-purple)" onclick="window.navigateTo?.('cve')" style="cursor:pointer">
+          <div class="stat-card-icon">🔴</div>
+          <div class="stat-card-value" id="home-cve-stat">250K+</div>
+          <div class="stat-card-label">CVEs Available</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #c62828">
+          <div class="stat-card-icon">👤</div>
+          <div class="stat-card-value" id="apt-count-stat">~140</div>
+          <div class="stat-card-label">APT Groups</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #1565c0">
+          <div class="stat-card-icon">🎯</div>
+          <div class="stat-card-value">900+</div>
+          <div class="stat-card-label">ATT&CK Techniques</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #2e7d32">
+          <div class="stat-card-icon">⚡</div>
+          <div class="stat-card-value">3</div>
+          <div class="stat-card-label">Scan Modes</div>
+        </div>
+      </div>
+
+      <!-- Feature cards -->
+      <div class="card-grid cols-3" style="margin-bottom:32px">
+        <div class="card clickable" onclick="document.querySelector('[data-section=cve]').click()">
+          <div class="card-header" style="background:linear-gradient(135deg,#fde8e8,#fff)">
+            <div style="font-size:32px">🔴</div>
+            <div>
+              <div style="font-weight:700;font-size:1rem;margin-bottom:4px">CVE Intelligence</div>
+              <div style="font-size:13px;color:var(--grey-500)">Live NVD database lookup</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--grey-600)">Search the full NVD CVE database by ID, keyword, CVSS score, date range, CWE category, or affected product/vendor.</p>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-critical">Live API</span>
+            <span class="badge badge-neutral">NVD/NIST</span>
+          </div>
+        </div>
+
+        <div class="card clickable" onclick="document.querySelector('[data-section=apt]').click()">
+          <div class="card-header" style="background:linear-gradient(135deg,#fde8e8,#fff)">
+            <div style="font-size:32px">👤</div>
+            <div>
+              <div style="font-weight:700;font-size:1rem;margin-bottom:4px">APT Groups & TTPs</div>
+              <div style="font-size:13px;color:var(--grey-500)">MITRE ATT&CK Enterprise</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--grey-600)">Browse all known APT groups with their complete TTPs, detection guidance, mitigations, and associated malware.</p>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-critical">Live Data</span>
+            <span class="badge badge-neutral">ATT&CK v15</span>
+          </div>
+        </div>
+
+        <div class="card clickable" onclick="document.querySelector('[data-section=rules]').click()">
+          <div class="card-header" style="background:linear-gradient(135deg,var(--dxc-purple-50),#fff)">
+            <div style="font-size:32px">📋</div>
+            <div>
+              <div style="font-weight:700;font-size:1rem;margin-bottom:4px">SOC/SIEM Rules</div>
+              <div style="font-size:13px;color:var(--grey-500)">Visualize & Compare</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--grey-600)">Upload Sigma, Elastic SIEM, Splunk ES, or Suricata rules to visualize them and compare two rule sets side-by-side.</p>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-purple">Sigma</span>
+            <span class="badge badge-neutral">Elastic</span>
+            <span class="badge badge-neutral">Splunk</span>
+            <span class="badge badge-neutral">Suricata</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Core feature highlight -->
+      <div class="detail-panel" style="margin-bottom:32px">
+        <div class="detail-panel-header" style="background:linear-gradient(135deg,var(--dxc-purple),var(--dxc-purple-light));color:white">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="font-size:40px">🔗</div>
+            <div>
+              <div style="font-size:1.4rem;font-weight:800;margin-bottom:4px">Rule Correlation Engine</div>
+              <div style="opacity:0.8;font-size:0.9rem">The core capability of this platform</div>
+            </div>
+            <button class="btn" onclick="document.querySelector('[data-section=correlation]').click()"
+              style="margin-left:auto;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.3)">
+              Get Started →
+            </button>
+          </div>
+        </div>
+        <div class="detail-panel-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:36px;margin-bottom:12px">⚡</div>
+              <div style="font-weight:700;margin-bottom:6px">Simple / Fast</div>
+              <div style="font-size:13px;color:var(--grey-500)">Tag-based matching against ATT&CK technique IDs and recent CVEs</div>
+            </div>
+            <div style="text-align:center;padding:16px;border-left:1px solid var(--grey-200);border-right:1px solid var(--grey-200)">
+              <div style="font-size:36px;margin-bottom:12px">🔍</div>
+              <div style="font-weight:700;margin-bottom:6px">Advanced / Normal</div>
+              <div style="font-size:13px;color:var(--grey-500)">Full technique mapping + CVE keyword matching</div>
+            </div>
+            <div style="text-align:center;padding:16px">
+              <div style="font-size:36px;margin-bottom:12px">🧬</div>
+              <div style="font-weight:700;margin-bottom:6px">Extensive / Deep</div>
+              <div style="font-size:13px;color:var(--grey-500)">Cross-reference campaigns, sub-techniques, CVSS weighting</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick start guide -->
+      <div class="card">
+        <div class="card-header">
+          <div style="font-weight:700;font-size:1rem">🚀 Quick Start</div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="info-row">
+              <div class="info-label">1. Get example files</div>
+              <div class="info-value">Visit <a onclick="document.querySelector('[data-section=examples]').click()">Example Files</a> to download sample Sigma, Elastic, Splunk, or Suricata rule files</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">2. Visualize your rules</div>
+              <div class="info-value">Upload any rule file to <a onclick="document.querySelector('[data-section=rules]').click()">SOC/SIEM Rules → Visualizer</a> to see parsed rule cards</div>
+            </div>
+            <div class="info-row">
+              <div class="info-label">3. Compare rule sets</div>
+              <div class="info-value">Upload two files in <a onclick="document.querySelector('[data-section=rules]').click()">SOC/SIEM Rules → Comparator</a> to see differences</div>
+            </div>
+            <div class="info-row" style="border:none">
+              <div class="info-label" style="color:var(--dxc-purple);font-weight:700">4. Run Correlation ⭐</div>
+              <div class="info-value">Upload rules in <a onclick="document.querySelector('[data-section=correlation]').click()">Rule Correlation</a>, pick a scan mode, and get the full intelligence graph</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         SECTION: CVE INTELLIGENCE
+    ════════════════════════════════ -->
+    <section class="section-page" id="section-cve">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">🔴</div>
+          <div>
+            <h1 class="section-title">CVE <span>Intelligence</span></h1>
+            <p class="section-description">Live vulnerability database powered by NIST NVD. Search, filter, and explore CVEs in real time.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row" style="grid-template-columns:repeat(4,1fr)">
+        <div class="stat-card">
+          <div class="stat-card-icon">📊</div>
+          <div class="stat-card-value" id="cve-total-count">—</div>
+          <div class="stat-card-label">Results Found</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">🔴</div>
+          <div class="stat-card-value">250K+</div>
+          <div class="stat-card-label">Total CVEs in NVD</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">⚡</div>
+          <div class="stat-card-value">Live</div>
+          <div class="stat-card-label">Data Source</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon">🔄</div>
+          <div class="stat-card-value">Daily</div>
+          <div class="stat-card-label">NVD Updates</div>
+        </div>
+      </div>
+
+      <!-- Search & Filters -->
+      <div class="cve-search-area">
+        <div class="cve-search-top">
+          <div class="search-bar" style="flex:1">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="cve-search-input" class="search-input"
+              placeholder="Search by CVE ID (CVE-2024-xxxx), keyword, product name…"/>
+          </div>
+          <button class="btn btn-primary" id="cve-search-btn">Search</button>
+          <button class="btn btn-secondary" id="cve-recent-btn">Recent CVEs</button>
+        </div>
+
+        <div class="filters-bar" style="margin-bottom:0">
+          <div class="filter-group">
+            <span class="filter-label">Category</span>
+            <select class="filter-select" id="cve-cwe-filter"></select>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-group">
+            <span class="filter-label">CVSS Min</span>
+            <div class="range-group">
+              <input type="range" class="range-slider" id="cvss-min" min="0" max="10" step="0.5" value="0"/>
+              <span class="range-value" id="cvss-min-val">0</span>
+            </div>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">Max</span>
+            <div class="range-group">
+              <input type="range" class="range-slider" id="cvss-max" min="0" max="10" step="0.5" value="10"/>
+              <span class="range-value" id="cvss-max-val">10</span>
+            </div>
+          </div>
+          <div class="filter-divider"></div>
+          <div class="filter-group">
+            <span class="filter-label">From</span>
+            <input type="date" class="filter-select" id="cve-date-start"/>
+          </div>
+          <div class="filter-group">
+            <span class="filter-label">To</span>
+            <input type="date" class="filter-select" id="cve-date-end"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- CVE Grid -->
+      <div class="cve-grid" id="cve-grid">
+        <div class="loading-state" style="grid-column:1/-1">
+          <div class="spinner"></div>
+          <div>Loading recent CVEs…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         SECTION: APT GROUPS & TTPs
+    ════════════════════════════════ -->
+    <section class="section-page" id="section-apt">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">👤</div>
+          <div>
+            <h1 class="section-title">APT Groups <span>& TTPs</span></h1>
+            <p class="section-description">Full MITRE ATT&CK Enterprise database of threat actor groups and their tactics, techniques, and procedures.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+        <div class="stat-card"><div class="stat-card-icon">👤</div><div class="stat-card-value" id="apt-count-stat2">—</div><div class="stat-card-label">APT Groups</div></div>
+        <div class="stat-card"><div class="stat-card-icon">🎯</div><div class="stat-card-value">900+</div><div class="stat-card-label">ATT&CK Techniques</div></div>
+        <div class="stat-card"><div class="stat-card-icon">⚔️</div><div class="stat-card-value">14</div><div class="stat-card-label">MITRE Tactics</div></div>
+      </div>
+
+      <div class="search-bar" style="margin-bottom:20px">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="apt-search" class="search-input" placeholder="Search APT groups by name or alias…"/>
+      </div>
+
+      <div class="apt-layout" id="apt-layout">
+        <!-- List panel -->
+        <div class="apt-list-panel">
+          <div class="apt-list-header">
+            <div style="font-weight:700;font-size:0.9rem;color:var(--dxc-purple)">All Threat Groups</div>
+          </div>
+          <div class="apt-list-scroll" id="apt-list">
+            <div class="loading-state"><div class="spinner"></div><div>Loading ATT&CK data…</div></div>
+          </div>
+        </div>
+
+        <!-- Detail panel (hidden until group selected) -->
+        <div class="apt-detail-panel" id="apt-detail" style="display:none">
+          <div class="empty-state">
+            <div class="empty-state-icon">👈</div>
+            <div class="empty-state-title">Select an APT group</div>
+            <div class="empty-state-subtitle">Click any group in the left panel to see its complete TTP profile</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         SECTION: SOC/SIEM RULES
+    ════════════════════════════════ -->
+    <section class="section-page" id="section-rules">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">📋</div>
+          <div>
+            <h1 class="section-title">SOC/SIEM <span>Rules</span></h1>
+            <p class="section-description">Upload, visualize, and compare your SOC/SIEM rule files. Supports Sigma, Elastic SIEM, Splunk ES, and Suricata formats.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-visualizer">👁 Visualizer</button>
+        <button class="tab-btn" data-tab="tab-comparator">⚖️ Comparator</button>
+      </div>
+
+      <!-- ── Visualizer Tab ── -->
+      <div class="tab-panel active" id="tab-visualizer">
+        <div class="dropzone" id="rules-dropzone">
+          <input type="file" id="rules-file-input" accept=".json,.yaml,.yml"/>
+          <div class="dropzone-icon">📄</div>
+          <div class="dropzone-title">Drop your rule file here</div>
+          <div class="dropzone-subtitle">or click to browse</div>
+          <div class="dropzone-formats">
+            <span class="format-chip">.yaml</span>
+            <span class="format-chip">.yml</span>
+            <span class="format-chip">.json</span>
+          </div>
+        </div>
+        <div id="rules-visualizer-output" style="margin-top:24px"></div>
+      </div>
+
+      <!-- ── Comparator Tab ── -->
+      <div class="tab-panel" id="tab-comparator">
+        <div class="comparator-layout">
+          <div class="compare-dropzone file-a" id="compare-dropzone-a">
+            <input type="file" id="compare-file-a" accept=".json,.yaml,.yml"/>
+            <div style="font-size:32px;margin-bottom:8px">🔵</div>
+            <div class="dropzone-title">File A</div>
+            <div class="dropzone-subtitle">Drop or click to upload first rule set</div>
+            <div class="dropzone-formats">
+              <span class="format-chip" style="background:var(--severity-info-bg);color:var(--severity-info)">.yaml / .json</span>
+            </div>
+          </div>
+          <div class="compare-dropzone file-b" id="compare-dropzone-b">
+            <input type="file" id="compare-file-b" accept=".json,.yaml,.yml"/>
+            <div style="font-size:32px;margin-bottom:8px">🟣</div>
+            <div class="dropzone-title">File B</div>
+            <div class="dropzone-subtitle">Drop or click to upload second rule set</div>
+            <div class="dropzone-formats">
+              <span class="format-chip" style="background:var(--dxc-purple-50);color:var(--dxc-purple)">.yaml / .json</span>
+            </div>
+          </div>
+        </div>
+        <div id="compare-results" style="display:none"></div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         SECTION: CORRELATION
+    ════════════════════════════════ -->
+    <section class="section-page" id="section-correlation">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">🔗</div>
+          <div>
+            <h1 class="section-title">Rule <span>Correlation</span></h1>
+            <p class="section-description">
+              The core intelligence engine. Upload your SOC/SIEM rules and correlate them against MITRE ATT&CK techniques, APT groups, and CVEs.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="correlation-setup">
+        <!-- Upload -->
+        <div>
+          <div style="font-weight:700;margin-bottom:12px;color:var(--grey-800)">1. Upload Rule File</div>
+          <div class="dropzone" id="corr-dropzone" style="padding:32px">
+            <input type="file" id="corr-file-input" accept=".json,.yaml,.yml"/>
+            <div class="dropzone-icon" style="font-size:36px">📂</div>
+            <div class="dropzone-title" style="font-size:1rem">Drop rule file here</div>
+            <div class="dropzone-subtitle">Sigma, Elastic, Splunk, Suricata</div>
+          </div>
+        </div>
+
+        <!-- Scan mode -->
+        <div>
+          <div style="font-weight:700;margin-bottom:12px;color:var(--grey-800)">2. Select Scan Mode</div>
+          <div class="scan-modes">
+            <div class="scan-mode-card fast" data-mode="simple">
+              <input type="radio" name="scan-mode" value="simple"/>
+              <div class="scan-mode-icon">⚡</div>
+              <div class="scan-mode-title">Simple</div>
+              <div class="scan-mode-desc">Tag matching & recent CVEs</div>
+              <span class="scan-mode-time">Fast ~10s</span>
+            </div>
+            <div class="scan-mode-card normal selected" data-mode="advanced">
+              <input type="radio" name="scan-mode" value="advanced" checked/>
+              <div class="scan-mode-icon">🔍</div>
+              <div class="scan-mode-title">Advanced</div>
+              <div class="scan-mode-desc">Full technique mapping + CVE keyword search</div>
+              <span class="scan-mode-time">Normal ~30s</span>
+            </div>
+            <div class="scan-mode-card deep" data-mode="deep">
+              <input type="radio" name="scan-mode" value="deep"/>
+              <div class="scan-mode-icon">🧬</div>
+              <div class="scan-mode-title">Extensive</div>
+              <div class="scan-mode-desc">Deep cross-reference + CVSS weighting</div>
+              <span class="scan-mode-time">Deep ~2min</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg" id="run-correlation-btn" disabled style="width:100%;margin-top:12px">
+            🔗 Run Correlation Analysis
+          </button>
+        </div>
+      </div>
+
+      <!-- Scan Progress -->
+      <div class="scan-progress" id="scan-progress">
+        <div style="font-weight:700;margin-bottom:16px;font-size:1rem;color:var(--dxc-purple)">⚙️ Running Correlation…</div>
+        <div class="scan-steps" id="scan-steps-list"></div>
+      </div>
+
+      <!-- Results -->
+      <div class="correlation-results" id="correlation-results">
+
+        <!-- Summary stats -->
+        <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-bottom:24px">
+          <div class="stat-card" style="border-left:4px solid var(--severity-critical)">
+            <div class="stat-card-icon">🔴</div>
+            <div class="stat-card-value" id="corr-weak-count">—</div>
+            <div class="stat-card-label">Weak / Uncovered Rules</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--severity-high)">
+            <div class="stat-card-icon">🟠</div>
+            <div class="stat-card-value" id="corr-partial-count">—</div>
+            <div class="stat-card-label">Partial Coverage</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid var(--severity-low)">
+            <div class="stat-card-icon">🟢</div>
+            <div class="stat-card-value" id="corr-strong-count">—</div>
+            <div class="stat-card-label">Well Correlated</div>
+          </div>
+        </div>
+
+        <div class="correlation-layout">
+          <!-- Graph -->
+          <div class="graph-container" style="position:relative">
+            <div class="graph-toolbar">
+              <div style="font-weight:700;font-size:0.875rem">Correlation Graph</div>
+              <div style="font-size:12px;color:var(--grey-500)">Click nodes for details · Drag to explore · Scroll to zoom</div>
+              <div class="graph-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#603494"></div>Rule</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#1565c0"></div>Technique</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#c62828"></div>APT Group</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#e65100"></div>CVE</div>
+              </div>
+            </div>
+            <div id="correlation-graph"></div>
+            <!-- Node detail overlay -->
+            <div id="graph-node-panel" style="display:none;position:absolute;top:80px;right:16px;background:white;border:1px solid var(--grey-200);border-radius:12px;padding:16px;width:260px;box-shadow:var(--shadow-lg);z-index:50">
+              <div style="font-size:11px;font-weight:600;color:var(--grey-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Selected Node</div>
+              <div id="graph-node-detail"></div>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('graph-node-panel').style.display='none'" style="margin-top:12px;width:100%">Dismiss</button>
+            </div>
+          </div>
+
+          <!-- Summary panel -->
+          <div class="correlation-summary">
+            <div class="summary-card">
+              <div class="summary-card-header" style="color:var(--severity-critical)">🔴 Weak Rules</div>
+              <div id="corr-weak-list"></div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-header" style="color:var(--severity-high)">🟠 Partial Coverage</div>
+              <div id="corr-partial-list"></div>
+            </div>
+            <div class="summary-card">
+              <div class="summary-card-header" style="color:var(--severity-low)">🟢 Well Correlated</div>
+              <div id="corr-strong-list"></div>
+            </div>
+            <button class="btn btn-secondary" id="export-report-btn" disabled style="width:100%">
+              ⬇️ Export Correlation Report (JSON)
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════
+         SECTION: EXAMPLES
+    ════════════════════════════════ -->
+    <section class="section-page" id="section-examples">
+      <div class="section-header">
+        <div class="section-header-top">
+          <div class="section-icon">📥</div>
+          <div>
+            <h1 class="section-title">Example <span>Rule Files</span></h1>
+            <p class="section-description">
+              Download sample SOC/SIEM rule files in different formats. Use them to explore the visualizer, comparator, and correlation engine.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="examples-grid">
+
+        <!-- Sigma -->
+        <div class="example-card">
+          <div class="example-card-top">
+            <div class="example-icon">🔷</div>
+            <div class="example-title">Sigma Rules</div>
+            <span class="example-format">YAML</span>
+            <p class="example-description">
+              7 Sigma detection rules targeting Windows credential access and lateral movement techniques commonly used in APT campaigns.
+            </p>
+          </div>
+          <div class="example-card-body">
+            <ul class="example-rules-list">
+              <li>Mimikatz LSASS Memory Access (T1003.001)</li>
+              <li>Pass-the-Hash via Lateral Movement (T1550.002)</li>
+              <li>Suspicious PowerShell Encoded Command (T1059.001)</li>
+              <li>Scheduled Task Creation via Schtasks (T1053.005)</li>
+              <li>NTDS.dit File Access (T1003.003)</li>
+              <li>WMI Lateral Movement Execution (T1047)</li>
+            </ul>
+            <div class="example-preview">
+              <code>title: Mimikatz LSASS Memory Access
+status: stable
+logsource:
+  category: process_access
+  product: windows
+detection:
+  selection:
+    TargetImage|endswith: '\lsass.exe'
+    GrantedAccess|contains:
+      - '0x1010'
+      - '0x1F3FFF'
+  condition: selection
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1003.001</code>
+            </div>
+          </div>
+          <div class="example-card-footer">
+            <button class="btn btn-primary" onclick="downloadExample('sigma_windows.yml')">⬇️ Download</button>
+            <button class="btn btn-secondary" onclick="useExampleForCorrelation('sigma_windows.yml')">🔗 Use for Correlation</button>
+            <button class="btn btn-ghost" onclick="useExampleForComparison('sigma_windows.yml')">⚖️ Compare</button>
+          </div>
+        </div>
+
+        <!-- Elastic -->
+        <div class="example-card">
+          <div class="example-card-top">
+            <div class="example-icon">🟡</div>
+            <div class="example-title">Elastic SIEM Rules</div>
+            <span class="example-format">JSON (EQL)</span>
+            <p class="example-description">
+              6 Elastic Security EQL rules for endpoint threat detection including Cobalt Strike, ransomware, DNS tunneling, and ProxyShell exploitation.
+            </p>
+          </div>
+          <div class="example-card-body">
+            <ul class="example-rules-list">
+              <li>Potential Cobalt Strike Beacon Activity (T1071.001)</li>
+              <li>Suspicious LOLBin Execution for Discovery (T1016)</li>
+              <li>Ransomware Volume Shadow Copy Deletion (T1490)</li>
+              <li>Data Exfiltration via DNS Tunneling (T1048.003)</li>
+              <li>Suspicious Registry Run Key Persistence (T1547.001)</li>
+              <li>ProxyShell Exchange Exploitation (CVE-2021-34473)</li>
+            </ul>
+            <div class="example-preview">
+              <code>{
+  "rule_id": "e3c25d4e-...",
+  "name": "Potential Cobalt Strike Beacon",
+  "severity": "high",
+  "type": "eql",
+  "query": "network where host.os.type == \"windows\"
+    and process.name in (\"rundll32.exe\",
+      \"regsvr32.exe\", \"mshta.exe\")",
+  "mitre": {
+    "techniques": ["T1071.001", "T1218.010"]
+  }
+}</code>
+            </div>
+          </div>
+          <div class="example-card-footer">
+            <button class="btn btn-primary" onclick="downloadExample('elastic_siem.json')">⬇️ Download</button>
+            <button class="btn btn-secondary" onclick="useExampleForCorrelation('elastic_siem.json')">🔗 Use for Correlation</button>
+            <button class="btn btn-ghost" onclick="useExampleForComparison('elastic_siem.json')">⚖️ Compare</button>
+          </div>
+        </div>
+
+        <!-- Splunk -->
+        <div class="example-card">
+          <div class="example-card-top">
+            <div class="example-icon">🟢</div>
+            <div class="example-title">Splunk ES Rules</div>
+            <span class="example-format">JSON (SPL)</span>
+            <p class="example-description">
+              5 Splunk Enterprise Security correlation searches for C2 beaconing, data exfiltration, brute force, Tor usage, and Kerberoasting detection.
+            </p>
+          </div>
+          <div class="example-card-body">
+            <ul class="example-rules-list">
+              <li>C2 Beaconing via Periodic Connections (T1071, T1573)</li>
+              <li>Large Data Transfer to External Destinations (T1048)</li>
+              <li>Brute Force Login Against Multiple Accounts (T1110)</li>
+              <li>Tor Exit Node Communication (T1090.003)</li>
+              <li>Kerberoasting Attack Detection (T1558.003)</li>
+            </ul>
+            <div class="example-preview">
+              <code>{
+  "name": "Detect C2 Beaconing via Periodic
+           Network Connections",
+  "severity": "high",
+  "risk_score": 72,
+  "search": "index=network sourcetype=firewall
+    | bucket span=5m _time
+    | stats count by src_ip, _time
+    | eventstats avg(count) as avg by src_ip
+    | where abs(count-avg) < stdev*0.5",
+  "mitre": { "techniques": ["T1071","T1573"] }
+}</code>
+            </div>
+          </div>
+          <div class="example-card-footer">
+            <button class="btn btn-primary" onclick="downloadExample('splunk_spl.json')">⬇️ Download</button>
+            <button class="btn btn-secondary" onclick="useExampleForCorrelation('splunk_spl.json')">🔗 Use for Correlation</button>
+            <button class="btn btn-ghost" onclick="useExampleForComparison('splunk_spl.json')">⚖️ Compare</button>
+          </div>
+        </div>
+
+        <!-- Suricata -->
+        <div class="example-card">
+          <div class="example-card-top">
+            <div class="example-icon">🔴</div>
+            <div class="example-title">Suricata NIDS Rules</div>
+            <span class="example-format">YAML</span>
+            <p class="example-description">
+              6 Suricata network IDS signature rules detecting Emotet C2, Log4Shell, Nmap scanning, APT29 WellMess RAT, SMBGhost exploitation, and ransomware.
+            </p>
+          </div>
+          <div class="example-card-body">
+            <ul class="example-rules-list">
+              <li>Emotet Loader Network Activity (T1071.001)</li>
+              <li>Apache Log4Shell RCE — CVE-2021-44228 (T1190)</li>
+              <li>Nmap SYN Port Scan Detection (T1046)</li>
+              <li>APT29 WellMess RAT C2 Check-in</li>
+              <li>SMBGhost Exploit Attempt — CVE-2020-0796 (T1210)</li>
+              <li>Ransomware File Encryption via SMB (T1486)</li>
+            </ul>
+            <div class="example-preview">
+              <code>- sid: 9000002
+  name: ET EXPLOIT Apache Log4j RCE
+  action: alert
+  protocol: tcp
+  msg: "Log4Shell RCE (CVE-2021-44228)"
+  content_matches:
+    - content: "${jndi:"
+      nocase: true
+    - content: "ldap"
+  mitre:
+    tactics: [Initial Access]
+    techniques: [T1190]
+  tags: [Log4Shell, CVE-2021-44228]</code>
+            </div>
+          </div>
+          <div class="example-card-footer">
+            <button class="btn btn-primary" onclick="downloadExample('suricata_nids.yaml')">⬇️ Download</button>
+            <button class="btn btn-secondary" onclick="useExampleForCorrelation('suricata_nids.yaml')">🔗 Use for Correlation</button>
+            <button class="btn btn-ghost" onclick="useExampleForComparison('suricata_nids.yaml')">⚖️ Compare</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Usage guide -->
+      <div class="card" style="margin-top:32px">
+        <div class="card-header">
+          <div style="font-weight:700">💡 How to use example files</div>
+        </div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
+            <div>
+              <div style="font-weight:600;color:var(--dxc-purple);margin-bottom:8px">📋 Visualizer</div>
+              <p style="font-size:13px;color:var(--grey-600)">Download any file → go to <strong>SOC/SIEM Rules → Visualizer</strong> → upload it → see all rules as structured cards with severity, tactics, and detection logic.</p>
+            </div>
+            <div>
+              <div style="font-weight:600;color:var(--dxc-purple);margin-bottom:8px">⚖️ Comparator</div>
+              <p style="font-size:13px;color:var(--grey-600)">Download two files (e.g. Sigma + Elastic) → go to <strong>SOC/SIEM Rules → Comparator</strong> → upload both → see common rules, differences, and coverage gaps.</p>
+            </div>
+            <div>
+              <div style="font-weight:600;color:var(--dxc-purple);margin-bottom:8px">🔗 Correlation</div>
+              <p style="font-size:13px;color:var(--grey-600)">Download any file → go to <strong>Rule Correlation</strong> → upload it → pick scan mode → run analysis → explore the interactive graph.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════
+     MODALS
+══════════════════════════════════ -->
+
+<!-- CVE Detail Modal -->
+<div class="modal-overlay" id="cve-modal">
+  <div class="modal cve-detail-modal">
+    <div id="cve-modal-content"></div>
+  </div>
+</div>
+
+<!-- TTP Detail Modal -->
+<div class="modal-overlay" id="ttp-modal">
+  <div class="modal">
+    <div id="ttp-modal-content"></div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ═══════════════════════════════════
+     Toast out animation
+══════════════════════════════════ -->
+<style>
+@keyframes toastOut { to { transform: translateX(110%); opacity: 0; } }
+</style>
+
+<!-- App JS (ES modules) -->
+<script type="module" src="js/app.js"></script>
+
+</body>
+</html>

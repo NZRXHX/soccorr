@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "name": "Elastic SIEM Endpoint Detection Rules",
+    "version": "8.12.0",
+    "description": "Elastic Security EQL rules for endpoint threat detection targeting common APT techniques",
+    "author": "DXC SOC Team",
+    "created": "2024-01-15",
+    "updated": "2024-03-20"
+  },
+  "rules": [
+    {
+      "rule_id": "e3c25d4e-1f67-4b89-b7e9-3f8a2c1d9045",
+      "name": "Potential Cobalt Strike Beacon Activity",
+      "description": "Detects network patterns consistent with Cobalt Strike beacon communication, including malleable C2 profile indicators and common staging domains.",
+      "enabled": true,
+      "risk_score": 73,
+      "severity": "high",
+      "type": "eql",
+      "language": "eql",
+      "query": "network where host.os.type == \"windows\" and network.direction == \"egress\" and process.name in (\"rundll32.exe\", \"regsvr32.exe\", \"mshta.exe\", \"wscript.exe\") and not cidrmatch(destination.ip, \"10.0.0.0/8\", \"172.16.0.0/12\", \"192.168.0.0/16\")",
+      "tags": ["Cobalt Strike", "C2", "Lateral Movement", "T1071.001", "T1218"],
+      "mitre": {
+        "tactics": ["Command and Control", "Defense Evasion"],
+        "techniques": ["T1071.001", "T1218.010", "T1218.011"]
+      },
+      "false_positives": ["Legitimate use of system utilities for remote admin"],
+      "references": [
+        "https://attack.mitre.org/software/S0154/",
+        "https://blog.cobaltstrike.com/malleable-c2"
+      ],
+      "interval": "5m",
+      "from": "now-6m",
+      "max_signals": 100,
+      "throttle": "no_actions"
+    },
+    {
+      "rule_id": "7a4f3e12-89dc-4321-b9f1-2c5e8d7a0b36",
+      "name": "Suspicious LOLBin Execution for Discovery",
+      "description": "Detects common Living-off-the-Land binaries used for system discovery and reconnaissance by threat actors.",
+      "enabled": true,
+      "risk_score": 47,
+      "severity": "medium",
+      "type": "eql",
+      "language": "eql",
+      "query": "process where host.os.type == \"windows\" and process.name in (\"net.exe\", \"net1.exe\", \"nltest.exe\", \"whoami.exe\", \"ipconfig.exe\", \"arp.exe\", \"nbtstat.exe\") and process.args : (\"group\", \"/domain\", \"/dclist\", \"localgroup\", \"view\") and not process.parent.name in (\"msiexec.exe\", \"setup.exe\")",
+      "tags": ["Discovery", "LOLBin", "T1016", "T1018", "T1069", "T1087"],
+      "mitre": {
+        "tactics": ["Discovery"],
+        "techniques": ["T1016", "T1018", "T1069.002", "T1087.002"]
+      },
+      "false_positives": ["System administrators running legitimate discovery scripts"],
+      "references": ["https://attack.mitre.org/tactics/TA0007/"],
+      "interval": "5m",
+      "from": "now-6m",
+      "max_signals": 100,
+      "throttle": "no_actions"
+    },
+    {
+      "rule_id": "d2e8a7c5-3f41-4e90-a6b2-8d1f9e5c0a74",
+      "name": "Ransomware Volume Shadow Copy Deletion",
+      "description": "Detects attempts to delete Windows Volume Shadow Copies, a common ransomware pre-encryption step used by groups like LockBit, BlackCat, and Conti.",
+      "enabled": true,
+      "risk_score": 99,
+      "severity": "critical",
+      "type": "eql",
+      "language": "eql",
+      "query": "process where host.os.type == \"windows\" and (process.name == \"vssadmin.exe\" and process.args : (\"delete\", \"shadows\", \"/all\", \"/quiet\")) or (process.name == \"wmic.exe\" and process.args : (\"shadowcopy\", \"delete\")) or (process.name == \"powershell.exe\" and process.args : (\"*Get-WmiObject*\", \"*Win32_ShadowCopy*\", \"*.Delete()*\"))",
+      "tags": ["Ransomware", "Defense Evasion", "T1490", "LockBit", "BlackCat"],
+      "mitre": {
+        "tactics": ["Impact"],
+        "techniques": ["T1490"]
+      },
+      "false_positives": ["Legitimate backup management software"],
+      "references": [
+        "https://attack.mitre.org/techniques/T1490/",
+        "https://www.cisa.gov/stopransomware"
+      ],
+      "interval": "5m",
+      "from": "now-6m",
+      "max_signals": 10,
+      "throttle": "rule"
+    },
+    {
+      "rule_id": "5b9c1d3e-7a82-4f56-c8d0-1e3b6f9a2c47",
+      "name": "Potential Data Exfiltration via DNS Tunneling",
+      "description": "Detects unusually long DNS queries or high-frequency DNS requests that may indicate DNS tunneling for data exfiltration.",
+      "enabled": true,
+      "risk_score": 63,
+      "severity": "high",
+      "type": "eql",
+      "language": "eql",
+      "query": "network where event.type == \"protocol\" and network.protocol == \"dns\" and length(dns.question.name) > 50 and not dns.question.name : (\"*.amazonaws.com\", \"*.azure.com\", \"*.office365.com\", \"*.microsoft.com\")",
+      "tags": ["Exfiltration", "DNS Tunneling", "T1048.003", "T1071.004"],
+      "mitre": {
+        "tactics": ["Exfiltration", "Command and Control"],
+        "techniques": ["T1048.003", "T1071.004"]
+      },
+      "false_positives": ["Legitimate applications using long DNS names"],
+      "references": ["https://attack.mitre.org/techniques/T1071/004/"],
+      "interval": "10m",
+      "from": "now-11m",
+      "max_signals": 100,
+      "throttle": "no_actions"
+    },
+    {
+      "rule_id": "3f7e0a91-5c28-4d73-b1e5-9a4c2f8d6b30",
+      "name": "Suspicious Registry Run Key Persistence",
+      "description": "Detects creation or modification of registry run keys commonly used for persistence by malware and threat actors.",
+      "enabled": true,
+      "risk_score": 57,
+      "severity": "medium",
+      "type": "eql",
+      "language": "eql",
+      "query": "registry where host.os.type == \"windows\" and registry.path : (\"HKEY_LOCAL_MACHINE\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run*\", \"HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run*\", \"HKEY_LOCAL_MACHINE\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\RunOnce*\") and not process.name in (\"msiexec.exe\", \"setup.exe\", \"install.exe\")",
+      "tags": ["Persistence", "Registry", "T1547.001"],
+      "mitre": {
+        "tactics": ["Persistence", "Privilege Escalation"],
+        "techniques": ["T1547.001"]
+      },
+      "false_positives": ["Legitimate software installations"],
+      "references": ["https://attack.mitre.org/techniques/T1547/001/"],
+      "interval": "5m",
+      "from": "now-6m",
+      "max_signals": 100,
+      "throttle": "no_actions"
+    },
+    {
+      "rule_id": "8d2e5f0b-4a17-4c89-e3f6-7b9c1d4a8e25",
+      "name": "ProxyShell Exchange Exploitation Attempt",
+      "description": "Detects exploitation attempts targeting Microsoft Exchange ProxyShell vulnerabilities (CVE-2021-34473, CVE-2021-34523, CVE-2021-31207).",
+      "enabled": true,
+      "risk_score": 87,
+      "severity": "critical",
+      "type": "eql",
+      "language": "eql",
+      "query": "network where event.type == \"protocol\" and destination.port == 443 and http.request.method == \"POST\" and url.path : (\"/autodiscover/autodiscover.json*\", \"/mapi/nspi/*\") and http.request.body.content : (\"*powershell*\", \"*cmd.exe*\", \"*whoami*\")",
+      "tags": ["ProxyShell", "Exchange", "Initial Access", "T1190", "CVE-2021-34473"],
+      "mitre": {
+        "tactics": ["Initial Access"],
+        "techniques": ["T1190"]
+      },
+      "cve_references": ["CVE-2021-34473", "CVE-2021-34523", "CVE-2021-31207"],
+      "false_positives": ["Legitimate Exchange Autodiscover requests"],
+      "references": [
+        "https://nvd.nist.gov/vuln/detail/CVE-2021-34473",
+        "https://msrc.microsoft.com/update-guide/vulnerability/CVE-2021-34473"
+      ],
+      "interval": "5m",
+      "from": "now-6m",
+      "max_signals": 50,
+      "throttle": "no_actions"
+    }
+  ]
+}

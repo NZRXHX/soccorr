@@ -1,0 +1,117 @@
+{
+  "metadata": {
+    "name": "Splunk Enterprise Security Correlation Rules",
+    "version": "7.3.1",
+    "description": "Splunk ES correlation search rules for network-based C2 detection and exfiltration monitoring",
+    "author": "DXC SOC Team",
+    "framework": "Splunk Enterprise Security",
+    "created": "2024-02-01"
+  },
+  "correlation_searches": [
+    {
+      "name": "Detect C2 Beaconing via Periodic Network Connections",
+      "description": "Identifies hosts making periodic outbound connections to external IPs with consistent time intervals, indicative of C2 beaconing behavior.",
+      "search": "index=network sourcetype=firewall_traffic action=allowed dest_port!=80 dest_port!=443 | bucket span=5m _time | stats count, dc(dest_ip) as unique_dest by src_ip, _time | eventstats avg(count) as avg_count, stdev(count) as stdev_count by src_ip | where abs(count - avg_count) < (stdev_count * 0.5) AND count > 10 | stats count as beacon_windows by src_ip | where beacon_windows > 12",
+      "earliest_time": "-24h",
+      "latest_time": "now",
+      "cron_schedule": "*/15 * * * *",
+      "severity": "high",
+      "risk_score": 72,
+      "status": "enabled",
+      "notable": {
+        "title": "Potential C2 Beaconing Detected from $src_ip$",
+        "description": "Host $src_ip$ exhibits periodic connection patterns consistent with C2 beaconing.",
+        "recommended_actions": "Investigate outbound connections from affected host, check for malware infection, isolate if confirmed."
+      },
+      "tags": ["C2", "Beaconing", "Exfiltration"],
+      "mitre": {
+        "tactics": ["Command and Control"],
+        "techniques": ["T1071", "T1571", "T1573"]
+      }
+    },
+    {
+      "name": "Detect Large Data Transfer to External Destinations",
+      "description": "Detects unusually large outbound data transfers that may indicate data exfiltration by an insider or external attacker.",
+      "search": "index=network sourcetype=firewall_traffic action=allowed direction=outbound | stats sum(bytes_out) as total_bytes by src_ip, dest_ip | where total_bytes > 104857600 | eval total_mb = round(total_bytes/1048576, 2) | where NOT match(dest_ip, \"^10\\.\") AND NOT match(dest_ip, \"^172\\.1[6-9]\\.\") AND NOT match(dest_ip, \"^192\\.168\\.\")",
+      "earliest_time": "-1h",
+      "latest_time": "now",
+      "cron_schedule": "0 * * * *",
+      "severity": "critical",
+      "risk_score": 88,
+      "status": "enabled",
+      "notable": {
+        "title": "Large Data Exfiltration Detected: $total_mb$ MB from $src_ip$ to $dest_ip$",
+        "description": "Unusual large data transfer detected to external destination.",
+        "recommended_actions": "Immediately investigate the source host, identify the process responsible, block destination IP if malicious."
+      },
+      "tags": ["Exfiltration", "Data Theft", "DLP"],
+      "mitre": {
+        "tactics": ["Exfiltration"],
+        "techniques": ["T1048", "T1041", "T1052"]
+      }
+    },
+    {
+      "name": "Brute Force Login Attempts Against Multiple Accounts",
+      "description": "Detects brute force password attacks targeting multiple accounts from a single source, indicating credential stuffing or password spraying.",
+      "search": "index=wineventlog EventCode=4625 | stats count as failures, dc(user) as unique_users, values(user) as targeted_users by src_ip | where failures > 100 AND unique_users > 5 | eval attack_type = if(unique_users > 10, \"Password Spray\", \"Brute Force\")",
+      "earliest_time": "-30m",
+      "latest_time": "now",
+      "cron_schedule": "*/10 * * * *",
+      "severity": "high",
+      "risk_score": 80,
+      "status": "enabled",
+      "notable": {
+        "title": "$attack_type$ Detected from $src_ip$ targeting $unique_users$ accounts",
+        "description": "Multiple failed login attempts detected against $unique_users$ unique user accounts.",
+        "recommended_actions": "Block source IP, check for successful logins from same IP, reset compromised account passwords."
+      },
+      "tags": ["Credential Access", "Brute Force", "Password Spray"],
+      "mitre": {
+        "tactics": ["Credential Access"],
+        "techniques": ["T1110.001", "T1110.003"]
+      }
+    },
+    {
+      "name": "Detect Tor Exit Node Communication",
+      "description": "Identifies connections to known Tor exit nodes, which may indicate anonymized C2 communication or data exfiltration.",
+      "search": "index=network sourcetype=firewall_traffic action=allowed [| inputlookup tor_exit_nodes.csv | fields ip | rename ip as dest_ip] | stats count, values(src_ip) as internal_hosts, values(dest_ip) as tor_ips by _time | where count > 0",
+      "earliest_time": "-5m",
+      "latest_time": "now",
+      "cron_schedule": "*/5 * * * *",
+      "severity": "high",
+      "risk_score": 75,
+      "status": "enabled",
+      "notable": {
+        "title": "Tor Exit Node Communication Detected from $internal_hosts$",
+        "description": "Internal host communicating with Tor exit node, possible anonymized C2 or exfiltration.",
+        "recommended_actions": "Isolate the affected host, investigate process making connections, check for malware."
+      },
+      "tags": ["Anonymization", "C2", "T1090.003"],
+      "mitre": {
+        "tactics": ["Command and Control"],
+        "techniques": ["T1090.003"]
+      }
+    },
+    {
+      "name": "Detect Kerberoasting Attack",
+      "description": "Detects Kerberoasting attacks by monitoring for an unusually high number of Kerberos TGS requests for service accounts.",
+      "search": "index=wineventlog EventCode=4769 TicketOptions=0x40810000 TicketEncryptionType=0x17 | stats count, dc(ServiceName) as unique_services, values(ServiceName) as targeted_services by src_ip, user | where count > 5 AND unique_services > 3",
+      "earliest_time": "-30m",
+      "latest_time": "now",
+      "cron_schedule": "*/10 * * * *",
+      "severity": "high",
+      "risk_score": 79,
+      "status": "enabled",
+      "notable": {
+        "title": "Kerberoasting Attack Detected from $src_ip$ by $user$",
+        "description": "Suspicious Kerberos TGS requests for $unique_services$ service accounts detected.",
+        "recommended_actions": "Investigate user account, reset service account passwords, check for privilege escalation."
+      },
+      "tags": ["Credential Access", "Kerberoasting", "T1558.003"],
+      "mitre": {
+        "tactics": ["Credential Access"],
+        "techniques": ["T1558.003"]
+      }
+    }
+  ]
+}
